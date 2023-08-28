@@ -1,0 +1,53 @@
+name: CI
+
+on: push
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+env:
+  API: 1690988451583288294795
+  pathOutputBuild: build/Android/Android.apk
+  typeBuild: apk
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  product:
+    name: create Lib Unity
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+      - name: pull
+        run: |
+          git pull origin main
+      # Cache
+      - uses: actions/cache@v3
+        id: cache-build
+        with:
+          path: Library
+          key: Library-build-Android
+      - uses: actions/checkout@v3
+        if: ${{ always() && steps.cache-build.outputs.cache-hit != 'false' }}
+        with:
+          repository: ${{ secrets.REPO_BUILDER }}
+          path: ./project
+          token: ${{ secrets.TOKEN_BUILDER }}
+      - name: Install Dependencies
+        if: ${{ always() && steps.cache-build.outputs.cache-hit != 'false' }}
+        working-directory: "./project"
+        run: npm i
+      - name: Create Library
+        if: ${{ always() && steps.cache-build.outputs.cache-hit != 'false' }}
+        working-directory: "./project"
+        run: |
+          node src/controllers/create_library_unity.js ${{ secrets.USER_ID }} ${{ secrets.PROJECT_ID }} ../ ${{ secrets.TOKEN_BUILDER }} devmasyadi/LibTrainSurfer
+      
